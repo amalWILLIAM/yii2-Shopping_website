@@ -1,134 +1,125 @@
 <?php
-
 namespace backend\controllers;
 
-use backend\models\Cart;
-use app\models\CartSearch;
+use Yii;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
-use yii\filters\VerbFilter;
+use backend\models\Cart;
+use frontend\models\CartItem;
+use frontend\models\Product;
+use yii\data\dataProvider;
 
-/**
- * CartController implements the CRUD actions for Cart model.
- */
 class CartController extends Controller
 {
     /**
-     * @inheritDoc
+     * Add product to cart
      */
-    public function behaviors()
+    public function actionAdd($id)
     {
-        return array_merge(
-            parent::behaviors(),
-            [
-                'verbs' => [
-                    'class' => VerbFilter::className(),
-                    'actions' => [
-                        'delete' => ['POST'],
-                    ],
-                ],
-            ]
-        );
+        if (Yii::$app->user->isGuest) {
+            throw new NotFoundHttpException('You must be logged in to add products to the cart.');
+        }
+
+        $product = Product::findOne($id);
+        if (!$product) {
+            throw new NotFoundHttpException('Product not found');
+        }
+
+        $userId = Yii::$app->user->id;
+        $cart = Cart::findOne(['user_id' => $userId]);
+
+        if (!$cart) {
+            $cart = new Cart();
+            $cart->user_id = $userId;
+            $cart->created_at = time();
+            $cart->updated_at = time();
+            $cart->save();
+        }
+
+        $cartItem = CartItem::findOne(['cart_id' => $cart->id, 'product_id' => $id]);
+        if ($cartItem) {
+            $cartItem->quantity += 1;
+        } else {
+            $cartItem = new CartItem();
+            $cartItem->cart_id = $cart->id;
+            $cartItem->product_id = $id;
+            $cartItem->quantity = 1;
+        }
+
+        $cartItem->save();
+        Yii::$app->session->setFlash('success', 'Product added to cart!');
+        return $this->redirect(['index']);
     }
 
     /**
-     * Lists all Cart models.
-     *
-     * @return string
+     * Show cart items
      */
     public function actionIndex()
     {
-        $searchModel = new CartSearch();
-        $dataProvider = $searchModel->search($this->request->queryParams);
+        if (Yii::$app->user->isGuest) {
+            throw new NotFoundHttpException('You must be logged in to view the cart.');
+        }
+
+        $cart = Cart::findOne(['user_id' => Yii::$app->user->id]);
+        $cartItems = $cart ? $cart->cartItems : [];
 
         return $this->render('index', [
-            'searchModel' => $searchModel,
-            'dataProvider' => $dataProvider,
+            'cart' => $cartItems,
         ]);
     }
 
     /**
-     * Displays a single Cart model.
-     * @param int $id ID
-     * @return string
-     * @throws NotFoundHttpException if the model cannot be found
+     * Increase product quantity
      */
-    public function actionView($id)
+    public function actionIncrease($id)
     {
-        return $this->render('view', [
-            'model' => $this->findModel($id),
-        ]);
+        $this->updateQuantity($id, 1);
+        return $this->redirect(['index']);
     }
 
     /**
-     * Creates a new Cart model.
-     * If creation is successful, the browser will be redirected to the 'view' page.
-     * @return string|\yii\web\Response
+     * Decrease product quantity
      */
-    public function actionCreate()
+    public function actionDecrease($id)
     {
-        $model = new Cart();
+        $this->updateQuantity($id, -1);
+        return $this->redirect(['index']);
+    }
 
-        if ($this->request->isPost) {
-            if ($model->load($this->request->post()) && $model->save()) {
-                return $this->redirect(['view', 'id' => $model->id]);
+    /**
+     * Remove product from cart
+     */
+    public function actionRemove($id)
+    {
+        $userId = Yii::$app->user->id;
+        $cart = Cart::findOne(['user_id' => $userId]);
+        if ($cart) {
+            $cartItem = CartItem::findOne(['cart_id' => $cart->id, 'product_id' => $id]);
+            if ($cartItem) {
+                $cartItem->delete();
             }
-        } else {
-            $model->loadDefaultValues();
         }
-
-        return $this->render('create', [
-            'model' => $model,
-        ]);
-    }
-
-    /**
-     * Updates an existing Cart model.
-     * If update is successful, the browser will be redirected to the 'view' page.
-     * @param int $id ID
-     * @return string|\yii\web\Response
-     * @throws NotFoundHttpException if the model cannot be found
-     */
-    public function actionUpdate($id)
-    {
-        $model = $this->findModel($id);
-
-        if ($this->request->isPost && $model->load($this->request->post()) && $model->save()) {
-            return $this->redirect(['view', 'id' => $model->id]);
-        }
-
-        return $this->render('update', [
-            'model' => $model,
-        ]);
-    }
-
-    /**
-     * Deletes an existing Cart model.
-     * If deletion is successful, the browser will be redirected to the 'index' page.
-     * @param int $id ID
-     * @return \yii\web\Response
-     * @throws NotFoundHttpException if the model cannot be found
-     */
-    public function actionDelete($id)
-    {
-        $this->findModel($id)->delete();
 
         return $this->redirect(['index']);
     }
 
     /**
-     * Finds the Cart model based on its primary key value.
-     * If the model is not found, a 404 HTTP exception will be thrown.
-     * @param int $id ID
-     * @return Cart the loaded model
-     * @throws NotFoundHttpException if the model cannot be found
+     * Helper method to increase or decrease quantity
      */
-    protected function findModel($id)
+    private function updateQuantity($productId, $delta)
     {
-        if (($model = Cart::findOne(['id' => $id])) !== null) {
-            return $model;
+        $userId = Yii::$app->user->id;
+        $cart = Cart::findOne(['user_id' => $userId]);
+        if ($cart) {
+            $cartItem = CartItem::findOne(['cart_id' => $cart->id, 'product_id' => $productId]);
+            if ($cartItem) {
+                $cartItem->quantity += $delta;
+                if ($cartItem->quantity <= 0) {
+                    $cartItem->delete();
+                } else {
+                    $cartItem->save();
+                }
+            }
         }
-
-        throw new NotFoundHttpException('The requested page does not exist.');
     }
 }

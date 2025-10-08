@@ -3,6 +3,8 @@ use yii\bootstrap5\Nav;
 use yii\bootstrap5\NavBar;
 use yii\helpers\Html;
 use frontend\assets\AppAsset;
+use backend\models\Category;
+use backend\controllers\CategoryController;
 
 AppAsset::register($this);
 ?>
@@ -38,12 +40,14 @@ $menuItems = [
     ['label' => 'Home', 'url' => ['/site/index']],
     ['label' => 'About', 'url' => ['/site/about']],
     ['label' => 'Categories', 'url' => ['/category/index']],
+    ['label' => 'Cart', 'url' => ['/cart/index']],
 ];
 
 if (Yii::$app->user->isGuest) {
+    $menuItems[] = ['label' => 'Signup', 'url' => ['/site/signup']];
     $menuItems[] = ['label' => 'Login', 'url' => ['/site/login']];
 } else {
-    $menuItems[] = '<li class="nav-item">'
+    $menuItems[] = '<li class="nav-item d-flex align-items-center">'
         . Html::beginForm(['/site/logout'], 'post', ['class' => 'd-inline'])
         . Html::submitButton(
             'Logout (' . Yii::$app->user->identity->username . ')',

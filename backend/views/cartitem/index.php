@@ -1,24 +1,24 @@
 <?php
 
-use backend\models\Cart;
+use backend\models\CartItem;
 use yii\helpers\Html;
 use yii\helpers\Url;
 use yii\grid\ActionColumn;
 use yii\grid\GridView;
-use yii\data\dataProvider;
+
 /** @var yii\web\View $this */
 /** @var backend\models\CartSearch $searchModel */
 /** @var yii\data\ActiveDataProvider $dataProvider */
 
-$this->title = 'Carts';
+$this->title = 'Cart Items';
 $this->params['breadcrumbs'][] = $this->title;
 ?>
-<div class="cart-index">
+<div class="cart-item-index">
 
     <h1><?= Html::encode($this->title) ?></h1>
 
     <p>
-        <?= Html::a('Create Cart', ['create'], ['class' => 'btn btn-success']) ?>
+        <?= Html::a('Create Cart Item', ['create'], ['class' => 'btn btn-success']) ?>
     </p>
 
     <?php // echo $this->render('_search', ['model' => $searchModel]); ?>
@@ -30,12 +30,14 @@ $this->params['breadcrumbs'][] = $this->title;
             ['class' => 'yii\grid\SerialColumn'],
 
             'id',
-            'user_id',
+            'cart_id',
+            'product_id',
+            'quantity',
             'created_at',
-            'updated_at',
+            //'updated_at',
             [
                 'class' => ActionColumn::className(),
-                'urlCreator' => function ($action, Cart $model, $key, $index, $column) {
+                'urlCreator' => function ($action, CartItem $model, $key, $index, $column) {
                     return Url::toRoute([$action, 'id' => $model->id]);
                  }
             ],

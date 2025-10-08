@@ -26,8 +26,7 @@ $this->params['breadcrumbs'][] = $this->title;
 
                         <div class="card-body d-flex flex-column">
                             <h5 class="card-title"><?= Html::encode($product->name) ?></h5>
-                            <p class="card-text"><?= Html::encode($product->description) ?></p>
-                            <p class="card-text fw-bold mt-auto">Price: ₹<?= Html::encode($product->price) ?></p>
+                            <p class="card-text fw-bold mt-auto">₹<?= Html::encode($product->price) ?></p>
                         </div>
 
                         <div class="card-footer text-center">
@@ -36,6 +35,9 @@ $this->params['breadcrumbs'][] = $this->title;
                     </div>
                 </div>
             <?php endforeach; ?>
+            <div class="card-footer text-center">
+            <?= Html::a('Back',['category/index'],['class' => 'btn btn-primary']) ?>
+            </div>
         </div>
     <?php else: ?>
         <p class="text-center text-muted">No products found in this category.</p>

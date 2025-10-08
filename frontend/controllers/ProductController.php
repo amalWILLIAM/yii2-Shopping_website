@@ -5,6 +5,7 @@ use Yii;
 use yii\web\Controller;
 use backend\models\Product;
 use backend\models\Category;
+use yii\web\NotFoundHttpException;
 
 class ProductController extends Controller
 {
@@ -22,4 +23,18 @@ class ProductController extends Controller
             'products' => $products,
         ]);
     }
+
+
+    public function actionView($id)
+    {
+        $model = Product::findOne($id);
+
+        if($model == null)
+        {
+            throw new NotFoundhttpException('product not found');
+        }
+
+        return $this->render('view',['model' => $model]);
+    }
+
 }

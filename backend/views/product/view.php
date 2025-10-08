@@ -3,7 +3,7 @@
 use yii\helpers\Html;
 use yii\widgets\DetailView;
 
-/** @var yii\web\View $this */
+/** @var $this yii\web\View */
 /** @var backend\models\Product $model */
 
 $this->title = $model->name;
@@ -37,7 +37,7 @@ $this->params['breadcrumbs'][] = $this->title;
             'format' => 'html',
             'value' => function($model) {
                 return $model->image
-                    ? Html::img(Yii::getAlias('@web') . '/' . $model->image, ['width' => '150'])
+                    ? Html::img(Yii::getAlias('@web') . './uploads/products/' . $model->image, ['width' => '150'])
                     : '(No Image)';
             },
         ],
