@@ -31,8 +31,13 @@ $this->params['breadcrumbs'][] = $this->title;
             <td><?= Html::encode($model->status) ?></td>
         </tr>
         <tr>
+            <th>Address</th>
+            <td><?= Html::encode($model->shipping_address)?></td>
+        </tr>
+
+        <tr>
             <th>Total Price</th>
-            <td>$<?= number_format($model->total_price, 2) ?></td>
+            <td><?= number_format($model->total_price, 2) ?></td>
         </tr>
         <tr>
             <th>Created At</th>

@@ -121,65 +121,126 @@ class CartController extends Controller
     /**
      * Checkout process
      */
+    // public function actionCheckout()
+    // {
+    //     $userId = Yii::$app->user->id;
+    //     $cart = Cart::findOne(['user_id' => $userId]);
+
+    //     if (!$cart || empty($cart->cartItems)) {
+    //         Yii::$app->session->setFlash('error', 'Your cart is empty.');
+    //         return $this->redirect(['cart/index']);
+    //     }
+
+    //     $transaction = Yii::$app->db->beginTransaction();
+
+    //     try {
+    //         // Create order
+    //         $order = new Order();
+    //         $order->user_id = $userId;
+    //         $order->total_price = $cart->getTotal();
+    //         $order->status = 'placed';
+    //         $order->created_at = time();   // integer timestamp
+    //         $order->updated_at = time(); 
+
+    //         if (!$order->save()) {
+    //             throw new \Exception('Order not saved: ' . json_encode($order->errors));
+                
+    //         }
+
+    //         // Create order items
+    //         foreach ($cart->cartItems as $cartItem) {
+    //             $orderItem = new OrderItem();
+    //             $orderItem->order_id = $order->id;
+    //             $orderItem->product_id = $cartItem->product_id;
+    //             $orderItem->quantity = $cartItem->quantity;
+    //             $orderItem->price = $cartItem->product->price;
+
+    //             if (!$orderItem->save()) {
+    //                 throw new \Exception('OrderItem not saved: ' . json_encode($orderItem->errors));
+    //                 echo '<pre>';
+    //             print_r($orderItem->errors);
+    //             exit();
+    //             }
+    //         }
+
+    //         // Clear cart
+    //         foreach ($cart->cartItems as $cartItem) {
+    //             $cartItem->delete();
+    //         }
+
+    //         $transaction->commit();
+
+    //         Yii::$app->session->setFlash('success', 'Order placed successfully!');
+    //         return $this->redirect(['order/view', 'id' => $order->id]);
+
+    //     } catch (\Exception $e) {
+    //         $transaction->rollBack();
+    //         Yii::$app->session->setFlash('error', 'Checkout failed: ' . $e->getMessage());
+    //         return $this->redirect(['category/index']);
+    //         // echo '<pre>';
+    //         // print_r($e->getMessage());
+    //         // exit();
+    //     }
+    // }
+
     public function actionCheckout()
     {
-        $userId = Yii::$app->user->id;
-        $cart = Cart::findOne(['user_id' => $userId]);
-
+        $user_id = Yii::$app->user->id;
+    
+        $cart = \common\models\Cart::findOne(['user_id' => $user_id]);
         if (!$cart || empty($cart->cartItems)) {
-            Yii::$app->session->setFlash('error', 'Your cart is empty.');
+            Yii::$app->session->setFlash('error', 'Cart is empty');
             return $this->redirect(['cart/index']);
         }
-
-        $transaction = Yii::$app->db->beginTransaction();
-
-        try {
-            // Create order
-            $order = new Order();
-            $order->user_id = $userId;
-            $order->total_price = $cart->getTotal();
-            $order->status = 'placed';
-            $order->created_at = time();   // integer timestamp
-            $order->updated_at = time(); 
-
-            if (!$order->save()) {
-                throw new \Exception('Order not saved: ' . json_encode($order->errors));
-                
-            }
-
-            // Create order items
-            foreach ($cart->cartItems as $cartItem) {
-                $orderItem = new OrderItem();
-                $orderItem->order_id = $order->id;
-                $orderItem->product_id = $cartItem->product_id;
-                $orderItem->quantity = $cartItem->quantity;
-                $orderItem->price = $cartItem->product->price;
-
-                if (!$orderItem->save()) {
-                    throw new \Exception('OrderItem not saved: ' . json_encode($orderItem->errors));
-                    echo '<pre>';
-                print_r($orderItem->errors);
-                exit();
+    
+        $model = new \frontend\models\CheckoutForm();
+    
+        if ($model->load(Yii::$app->request->post()) && $model->validate()) {
+            $transaction = Yii::$app->db->beginTransaction();
+            try {
+                $order = new \common\models\Order();
+                $order->user_id = $user_id;
+                $order->total_price = $cart->getTotal();
+                $order->status = 'Confirmed';
+                $order->shipping_address =$model->shipping_address;
+                $order->phone = $model->phone;
+                $order->payment = 'cash on delivery';
+                $order->created_at = time();
+                $order->updated_at = time();
+    
+                if (!$order->save()) {
+                    throw new \Exception('Order not saved: ' . json_encode($order->errors));
                 }
+    
+                foreach ($cart->cartItems as $cartItem) {
+                    $orderItem = new \common\models\OrderItem();
+                    $orderItem->order_id = $order->id;
+                    $orderItem->product_id = $cartItem->product_id;
+                    $orderItem->quantity = $cartItem->quantity;
+                    $orderItem->price = $cartItem->product->price;
+
+                    if (!$orderItem->save()) {
+                        throw new \Exception('OrderItem not saved: ' . json_encode($orderItem->errors));
+                    }
+                }
+    
+                // Clear cart
+                foreach ($cart->cartItems as $cartItem) {
+                    $cartItem->delete();
+                }
+    
+                $transaction->commit();
+                Yii::$app->session->setFlash('success', 'Order placed successfully!');
+                return $this->redirect(['order/view', 'id' => $order->id]);
+    
+            } catch (\Exception $e) {
+                $transaction->rollBack();
+                Yii::$app->session->setFlash('error', 'Checkout failed: ' . $e->getMessage());
+                return $this->redirect(['cart/index']);
             }
-
-            // Clear cart
-            foreach ($cart->cartItems as $cartItem) {
-                $cartItem->delete();
-            }
-
-            $transaction->commit();
-
-            Yii::$app->session->setFlash('success', 'Order placed successfully!');
-            return $this->redirect(['order/view', 'id' => $order->id]);
-
-        } catch (\Exception $e) {
-            $transaction->rollBack();
-            Yii::$app->session->setFlash('error', 'Checkout failed: ' . $e->getMessage());
-            return $this->redirect(['category/index']);
-            // echo '<pre>';
-            // print_r($e->getMessage());
-            // exit();
         }
+    
+        return $this->render('checkout', ['model' => $model]);
     }
+    
 }
